@@ -1,4 +1,6 @@
-﻿using NUnit.Framework;
+﻿using System;
+using NUnit.Framework;
+using System.Data;
 
 namespace SQLRoller.UnitTests.VerificationTests
 {
@@ -65,13 +67,116 @@ namespace SQLRoller.UnitTests.VerificationTests
             Assert.That(database.Satisfies(dataspec), Is.False, "database satisfied dataspec, when shouldn't, due to incorrect column names");
         }
 
+        [Test]
+        public void ShouldSatisfyIfAllColumnsPresentInDB()
+        {
+            var dataspec = new DatabaseSpec();
+            dataspec.AddSchema<Region>();
+            var database = new Database(connectionString);
+            Assert.That(database.Satisfies(dataspec), Is.True, "database didn't satisfy dataspec, all column names present");
+        }
+
         private class Categories
         {
             public int CategoryID { get; set; }
             public string CategoryNames { get; set; }
             public string Description { get; set; }
             public byte[] Picture { get; set; }
-
         } 
+        private class Region
+        {
+            public int RegionID { get; set; }
+            public string RegionDescription { get; set; }
+        }
     }
+
+    [TestFixture]
+    public class OnDataTypes
+    {
+        const string connectionString = "Integrated Security=SSPI;Initial Catalog=NorthWind;Data Source=ASUS-PC";
+        [Test]
+        public void ShouldNotSatisfyIfColumnDataTypeDoesNotMatch()
+        {
+            var dataspec = new DatabaseSpec();
+            dataspec.AddSchema<Categories>();
+            var database = new Database(connectionString);
+            Assert.That(database.Satisfies(dataspec), Is.False, "database satisfied dataspec, when shouldn't, due to incorrect DataTypes");
+        }
+
+        [Test]
+        public void ShouldSatisfyIfColumnDataTypeDoesMatch()
+        {
+            var dataspec = new DatabaseSpec();
+            dataspec.AddSchema<Region>();
+            var database = new Database(connectionString);
+            Assert.That(database.Satisfies(dataspec), Is.True, "database didn't satisfy dataspec, when should've, due to correct DataTypes");
+        }
+
+        private class Categories
+        {
+            [DataType(DataType = SqlDbType.Int)]
+            public int CategoryID { get; set; }
+            [DataType(DataType = SqlDbType.NVarChar)]
+            public string CategoryName { get; set; }
+            [DataType(DataType = SqlDbType.NVarChar)]
+            public string Description { get; set; }
+            [DataType(DataType = SqlDbType.NVarChar)]
+            public byte[] Picture { get; set; }
+        }
+
+        private class Region
+        {
+            [DataType(DataType = SqlDbType.Int)]
+            public int RegionID { get; set; }
+            [DataType(DataType = SqlDbType.NChar)]
+            public string RegionDescription { get; set; }
+        }
+    }
+
+    [TestFixture]
+    public class OnDataLength
+    {
+        const string connectionString = "Integrated Security=SSPI;Initial Catalog=NorthWind;Data Source=ASUS-PC";
+        [Test]
+        public void ShouldNotSatisfyIfColumnDataLengthDoesNotMatch()
+        {
+            var dataspec = new DatabaseSpec();
+            dataspec.AddSchema<Categories>();
+            var database = new Database(connectionString);
+            Assert.That(database.Satisfies(dataspec), Is.False, "database satisfied dataspec, when shouldn't, due to incorrect DataLengths");
+        }
+
+        [Test]
+        public void ShouldSatisfyIfColumnDataLengthDoesMatch()
+        {
+            var dataspec = new DatabaseSpec();
+            dataspec.AddSchema<Shippers>();
+            var database = new Database(connectionString);
+            Assert.That(database.Satisfies(dataspec), Is.True, "database didn't satisfy dataspec, when should've, due to correct DataLength");
+        }
+
+        private class Categories
+        {
+            [DataType(DataType = SqlDbType.Int)]
+            public int CategoryID { get; set; }
+            [DataType(DataType = SqlDbType.NVarChar), DataLength(Length = 20)]
+            public string CategoryName { get; set; }
+            [DataType(DataType = SqlDbType.NText)]
+            public string Description { get; set; }
+            [DataType(DataType = SqlDbType.Image)]
+            public byte[] Picture { get; set; }
+        }
+
+        private class Shippers
+        {
+            [DataType(DataType = SqlDbType.Int)]
+            public int ShipperID { get; set; }
+            [DataType(DataType = SqlDbType.NVarChar), DataLength(Length = 40)]
+            public string CompanyName { get; set; }
+            [DataType(DataType = SqlDbType.NVarChar), DataLength(Length = 24)]
+            public string Phone { get; set; }
+        }
+    }
+
+    
 }

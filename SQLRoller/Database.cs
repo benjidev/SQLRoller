@@ -23,7 +23,7 @@ namespace SQLRoller
 
         private bool VerifySchema(DatabaseSpec dataspec)
         {
-            foreach (DatabaseSpec.Table table in dataspec.tables)
+            foreach (DatabaseSpec.Table table in dataspec.Tables)
             {
                 if (!_tables.ContainsKey(table.Name)) return false;
                 if (!VerifyColumns(table)) return false;
@@ -34,19 +34,38 @@ namespace SQLRoller
         private bool VerifyColumns(DatabaseSpec.Table table)
         {
             var objId = _tables[table.Name];
-            var columns = GetColums(objId);
+            var existingColumns = GetColums(objId);
+            foreach (DatabaseSpec.Column specedColumn in table.Columns)
+            {
+                SchemaColumn existingColumn = FindExistingColumn(specedColumn.Name, existingColumns);
+                if (existingColumn == null)
+                {
+                    return false;
+                }
 
-            return table.Columns.All(columns.Contains);
-
+                if (!specedColumn.HasTheSameDataTypeAs(existingColumn))
+                {
+                    return false;
+                }
+            }
+            return true;
         }
 
-        private IList<string> GetColums(int objId)
+        private SchemaColumn FindExistingColumn(string name, IList<SchemaColumn> existingColumns)
+        {
+            return existingColumns.FirstOrDefault(existingColumn => existingColumn.Name == name);
+        }
+
+
+        private IList<SchemaColumn> GetColums(int objId)
         {
             //SELECT Name FROM Sys.columns where object_id = 309576141
-            var columns = new List<string>();
+            var columns = new List<SchemaColumn>();
             using (var conn = new SqlConnection(_connectionString))
             {
-                var cmd = new SqlCommand("SELECT Name FROM Sys.columns where object_id = @objectId", conn);
+                var cmd = new SqlCommand(@"SELECT c.Name, t.Name [type], c.max_length FROM Sys.columns c
+                                            Inner Join Sys.Types t on c.user_Type_id = t.user_type_id 
+                                            where object_id = @objectId", conn);
                 cmd.Parameters.Add("@objectId", SqlDbType.Int).Value = objId;
 
                 conn.Open();
@@ -54,15 +73,47 @@ namespace SQLRoller
                 if (reader.HasRows)
                 {
                     var nameOrd = reader.GetOrdinal("Name");
+                    var typeOrd = reader.GetOrdinal("type");
+                    var lengthOrd = reader.GetOrdinal("max_length");
                     while (reader.Read())
                     {
-                        columns.Add(reader.GetString(nameOrd));
+                        var column = new SchemaColumn(reader.GetString(nameOrd),
+                            reader.GetString(typeOrd),
+                            reader.GetInt16(lengthOrd));
+
+                        columns.Add(column);
                     }
                 }
             }
             return columns;
         }
 
+        public class SchemaColumn
+        {
+            private int _length;
+
+            public SchemaColumn(string name, string type, int length)
+            {
+                Name = name;
+                Type = type;
+                Length = length;
+            }
+            public string Name { get; private set; }
+            public string Type { get; private set; }
+            public int Length
+            {
+                get
+                {
+                    if (Type[0] == 'n')
+                    {
+                        //for nvarchar and nchar the unicode representation takes 2 bytes per character
+                        return _length/2;
+                    }
+                    return _length;
+                }
+                private set { _length = value; }
+            }
+        }
 
         private void GetSchemaInformation()
         {
@@ -84,4 +135,5 @@ namespace SQLRoller
             }
         }
     }
+    
 }
