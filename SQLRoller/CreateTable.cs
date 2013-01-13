@@ -30,7 +30,6 @@ namespace SQLRoller
 
         public string GetReleaseSql()
         {
-            _scopeResolver.Write();
             return String.Format("CREATE TABLE {0}[{1}]", _scopeResolver.Write(), _tableName);
         }
     }
