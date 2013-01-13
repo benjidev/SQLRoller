@@ -63,7 +63,7 @@ namespace SQLRoller
             var columns = new List<SchemaColumn>();
             using (var conn = new SqlConnection(_connectionString))
             {
-                var cmd = new SqlCommand(@"SELECT c.Name, t.Name [type], c.max_length FROM Sys.columns c
+                var cmd = new SqlCommand(@"SELECT c.Name, t.Name [type], c.max_length, c.is_nullable FROM Sys.columns c
                                             Inner Join Sys.Types t on c.user_Type_id = t.user_type_id 
                                             where object_id = @objectId", conn);
                 cmd.Parameters.Add("@objectId", SqlDbType.Int).Value = objId;
@@ -75,11 +75,13 @@ namespace SQLRoller
                     var nameOrd = reader.GetOrdinal("Name");
                     var typeOrd = reader.GetOrdinal("type");
                     var lengthOrd = reader.GetOrdinal("max_length");
+                    var allowNullsOrd = reader.GetOrdinal("is_nullable");
                     while (reader.Read())
                     {
                         var column = new SchemaColumn(reader.GetString(nameOrd),
                             reader.GetString(typeOrd),
-                            reader.GetInt16(lengthOrd));
+                            reader.GetInt16(lengthOrd),
+                            reader.GetBoolean(allowNullsOrd));
 
                         columns.Add(column);
                     }
@@ -92,14 +94,16 @@ namespace SQLRoller
         {
             private int _length;
 
-            public SchemaColumn(string name, string type, int length)
+            public SchemaColumn(string name, string type, int length, bool allowNulls)
             {
                 Name = name;
                 Type = type;
                 Length = length;
+                AllowNulls = allowNulls;
             }
             public string Name { get; private set; }
             public string Type { get; private set; }
+            public bool AllowNulls { get; private set; }
             public int Length
             {
                 get

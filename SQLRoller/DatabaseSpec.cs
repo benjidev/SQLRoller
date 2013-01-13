@@ -26,19 +26,20 @@ namespace SQLRoller
 
                 var dataType = propertyInfo.GetCustomAttributes<DataTypeAttribute>(false).FirstOrDefault();
                 var dataLength = propertyInfo.GetCustomAttributes<DataLengthAttribute>(false).FirstOrDefault();
+                var allowNulls = propertyInfo.GetCustomAttributes<AllowNullsAttribute>(false).FirstOrDefault();
                 if (dataType != null)
                 {
-                    column.Type = dataType.DataType;
+                    column.Type = dataType.Value;
                     if (dataLength != null)
                     {
-                        column.Length = dataLength.Length;
+                        column.Length = dataLength.Value;
                     }
-
+                    if (allowNulls != null)
+                    {
+                        column.AllowNulls = allowNulls.Value;
+                    }
                 }
-
-
                 table.Columns.Add(column);
-               
             }
 
             Tables.Add(table);
@@ -64,6 +65,7 @@ namespace SQLRoller
             public string Name { get; private set; }
             public SqlDbType? Type { get; set; }
             public int? Length { get; set; }
+            public bool? AllowNulls { get; set; }
 
             public bool HasTheSameDataTypeAs(Database.SchemaColumn existingType)
             {
@@ -72,6 +74,10 @@ namespace SQLRoller
                     return false;
                 }
                 if (Length.HasValue && existingType.Length != Length)
+                {
+                    return false;
+                }
+                if (AllowNulls.HasValue && existingType.AllowNulls != AllowNulls)
                 {
                     return false;
                 }
@@ -92,12 +98,26 @@ namespace SQLRoller
 
     public class DataTypeAttribute : Attribute
     {
-        public SqlDbType DataType { get; set; }
-
-        public int? Length { get; set; }
+        public DataTypeAttribute(SqlDbType value)
+        {
+            Value = value;
+        }
+        public SqlDbType Value { get; set; }
     }
     public class DataLengthAttribute : Attribute
     {
-        public int Length { get; set; }
+        public DataLengthAttribute(int value)
+        {
+            Value = value;
+        }
+        public int Value { get; set; }
+    }
+    public class AllowNullsAttribute : Attribute
+    {
+        public AllowNullsAttribute(bool value)
+        {
+            Value = value;
+        }
+        public bool Value { get; set; }
     }
 }

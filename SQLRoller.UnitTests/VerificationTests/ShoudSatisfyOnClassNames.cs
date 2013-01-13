@@ -114,21 +114,21 @@ namespace SQLRoller.UnitTests.VerificationTests
 
         private class Categories
         {
-            [DataType(DataType = SqlDbType.Int)]
+            [DataType(SqlDbType.Int)]
             public int CategoryID { get; set; }
-            [DataType(DataType = SqlDbType.NVarChar)]
+            [DataType(SqlDbType.NVarChar)]
             public string CategoryName { get; set; }
-            [DataType(DataType = SqlDbType.NVarChar)]
+            [DataType(SqlDbType.NVarChar)]
             public string Description { get; set; }
-            [DataType(DataType = SqlDbType.NVarChar)]
+            [DataType(SqlDbType.NVarChar)]
             public byte[] Picture { get; set; }
         }
 
         private class Region
         {
-            [DataType(DataType = SqlDbType.Int)]
+            [DataType(SqlDbType.Int)]
             public int RegionID { get; set; }
-            [DataType(DataType = SqlDbType.NChar)]
+            [DataType(SqlDbType.NChar)]
             public string RegionDescription { get; set; }
         }
     }
@@ -157,26 +157,70 @@ namespace SQLRoller.UnitTests.VerificationTests
 
         private class Categories
         {
-            [DataType(DataType = SqlDbType.Int)]
+            [DataType(SqlDbType.Int)]
             public int CategoryID { get; set; }
-            [DataType(DataType = SqlDbType.NVarChar), DataLength(Length = 20)]
+            [DataType(SqlDbType.NVarChar), DataLength(20)]
             public string CategoryName { get; set; }
-            [DataType(DataType = SqlDbType.NText)]
+            [DataType(SqlDbType.NText)]
             public string Description { get; set; }
-            [DataType(DataType = SqlDbType.Image)]
+            [DataType(SqlDbType.Image)]
             public byte[] Picture { get; set; }
         }
 
         private class Shippers
         {
-            [DataType(DataType = SqlDbType.Int)]
+            [DataType(SqlDbType.Int)]
             public int ShipperID { get; set; }
-            [DataType(DataType = SqlDbType.NVarChar), DataLength(Length = 40)]
+            [DataType(SqlDbType.NVarChar), DataLength(40)]
             public string CompanyName { get; set; }
-            [DataType(DataType = SqlDbType.NVarChar), DataLength(Length = 24)]
+            [DataType(SqlDbType.NVarChar), DataLength(24)]
             public string Phone { get; set; }
         }
     }
 
+    [TestFixture]
+    public class OnAllowNulls
+    {
+        const string connectionString = "Integrated Security=SSPI;Initial Catalog=NorthWind;Data Source=ASUS-PC";
+        [Test]
+        public void ShouldNotSatisfyIfColumnAllowNullsDoesNotMatch()
+        {
+            var dataspec = new DatabaseSpec();
+            dataspec.AddSchema<Categories>();
+            var database = new Database(connectionString);
+            Assert.That(database.Satisfies(dataspec), Is.False, "database satisfied dataspec, when shouldn't, due to incorrect AllowNulls");
+        }
+
+        [Test]
+        public void ShouldSatisfyIfColumnAllowNullsDoesMatch()
+        {
+            var dataspec = new DatabaseSpec();
+            dataspec.AddSchema<Shippers>();
+            var database = new Database(connectionString);
+            Assert.That(database.Satisfies(dataspec), Is.True, "database didn't satisfy dataspec, when should've, due to correct AllowNulls");
+        }
+
+        private class Categories
+        {
+            [DataType(SqlDbType.Int), AllowNulls(false)]
+            public int CategoryID { get; set; }
+            [DataType(SqlDbType.NVarChar), DataLength(15), AllowNulls(false)]
+            public string CategoryName { get; set; }
+            [DataType(SqlDbType.NText), AllowNulls(false)]
+            public string Description { get; set; }
+            [DataType(SqlDbType.Image), AllowNulls(true)]
+            public byte[] Picture { get; set; }
+        }
+
+        private class Shippers
+        {
+            [DataType(SqlDbType.Int), AllowNulls(false)]
+            public int ShipperID { get; set; }
+            [DataType(SqlDbType.NVarChar), DataLength(40), AllowNulls(false)]
+            public string CompanyName { get; set; }
+            [DataType(SqlDbType.NVarChar), DataLength(24), AllowNulls(true)]
+            public string Phone { get; set; }
+        }
+    }
     
 }
