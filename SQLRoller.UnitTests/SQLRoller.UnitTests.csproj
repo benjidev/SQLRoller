@@ -52,7 +52,13 @@
     <Compile Include="CreateTableTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ScopeResolverTests.cs" />
-    <Compile Include="VerificationTests\ShoudSatisfyOnClassNames.cs" />
+    <Compile Include="VerificationTests\SatisfyTests\DataBaseTestBase.cs" />
+    <Compile Include="VerificationTests\SatisfyTests\OnClassNames.cs" />
+    <Compile Include="VerificationTests\SatisfyTests\OnColumnNames.cs" />
+    <Compile Include="VerificationTests\SatisfyTests\OnDataLength.cs" />
+    <Compile Include="VerificationTests\SatisfyTests\OnDataTypes.cs" />
+    <Compile Include="VerificationTests\SatisfyTests\OnAllowNulls.cs" />
+    <Compile Include="VerificationTests\SatisfyTests\OnIdendityInt.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

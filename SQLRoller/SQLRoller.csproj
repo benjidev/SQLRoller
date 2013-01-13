@@ -39,13 +39,22 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Attributes\AllowNullsAttribute.cs" />
+    <Compile Include="Attributes\IdentityIntAttribute.cs" />
     <Compile Include="CreateTable.cs" />
     <Compile Include="Database.cs" />
-    <Compile Include="DatabaseSpec.cs" />
+    <Compile Include="Specify\Column.cs" />
+    <Compile Include="Specify\DatabaseSpec.cs" />
+    <Compile Include="Attributes\DataLengthAttribute.cs" />
+    <Compile Include="Attributes\DataTypeAttribute.cs" />
+    <Compile Include="Specify\Extensions.cs" />
+    <Compile Include="Specify\Identity.cs" />
+    <Compile Include="Specify\Table.cs" />
     <Compile Include="IScopeResolver.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ScopeResolver.cs" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

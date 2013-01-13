@@ -1,7 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
+using SQLRoller.Specify;
 
 namespace SQLRoller
 {
@@ -23,7 +25,7 @@ namespace SQLRoller
 
         private bool VerifySchema(DatabaseSpec dataspec)
         {
-            foreach (DatabaseSpec.Table table in dataspec.Tables)
+            foreach (Table table in dataspec.Tables)
             {
                 if (!_tables.ContainsKey(table.Name)) return false;
                 if (!VerifyColumns(table)) return false;
@@ -31,11 +33,11 @@ namespace SQLRoller
             return true;
         }
 
-        private bool VerifyColumns(DatabaseSpec.Table table)
+        private bool VerifyColumns(Table table)
         {
             var objId = _tables[table.Name];
             var existingColumns = GetColums(objId);
-            foreach (DatabaseSpec.Column specedColumn in table.Columns)
+            foreach (Column specedColumn in table.Columns)
             {
                 SchemaColumn existingColumn = FindExistingColumn(specedColumn.Name, existingColumns);
                 if (existingColumn == null)
@@ -43,7 +45,7 @@ namespace SQLRoller
                     return false;
                 }
 
-                if (!specedColumn.HasTheSameDataTypeAs(existingColumn))
+                if (!specedColumn.IsSatisfiedBy(existingColumn))
                 {
                     return false;
                 }
@@ -51,7 +53,7 @@ namespace SQLRoller
             return true;
         }
 
-        private SchemaColumn FindExistingColumn(string name, IList<SchemaColumn> existingColumns)
+        private SchemaColumn FindExistingColumn(string name, IEnumerable<SchemaColumn> existingColumns)
         {
             return existingColumns.FirstOrDefault(existingColumn => existingColumn.Name == name);
         }
@@ -63,8 +65,10 @@ namespace SQLRoller
             var columns = new List<SchemaColumn>();
             using (var conn = new SqlConnection(_connectionString))
             {
-                var cmd = new SqlCommand(@"SELECT c.Name, t.Name [type], c.max_length, c.is_nullable FROM Sys.columns c
-                                            Inner Join Sys.Types t on c.user_Type_id = t.user_type_id 
+                var cmd = new SqlCommand(@"SELECT c.Name, t.Name [type], c.max_length, c.is_nullable, c.is_identity, ic.Seed_Value, ic.increment_value 
+                                            FROM Sys.columns c
+                                            Inner Join Sys.Types t on c.user_Type_id = t.user_type_id
+                                            Left Join [sys].[identity_columns] ic ON ic.object_id = c.object_id and ic.column_id = c.column_id 
                                             where object_id = @objectId", conn);
                 cmd.Parameters.Add("@objectId", SqlDbType.Int).Value = objId;
 
@@ -76,12 +80,23 @@ namespace SQLRoller
                     var typeOrd = reader.GetOrdinal("type");
                     var lengthOrd = reader.GetOrdinal("max_length");
                     var allowNullsOrd = reader.GetOrdinal("is_nullable");
+                    var identityOrd = reader.GetOrdinal("is_identity");
+                    var identitySeedOrd = reader.GetOrdinal("Seed_Value");
+                    var identityIncrementOrd = reader.GetOrdinal("increment_value");
                     while (reader.Read())
                     {
                         var column = new SchemaColumn(reader.GetString(nameOrd),
                             reader.GetString(typeOrd),
                             reader.GetInt16(lengthOrd),
                             reader.GetBoolean(allowNullsOrd));
+
+                        //Only Int Identities supported at the moment
+                        if (reader.GetBoolean(identityOrd) && column.Type.Equals("int", StringComparison.OrdinalIgnoreCase))
+                        {
+                            var identity = new Identity<int>(reader.GetInt32(identitySeedOrd),
+                                                             reader.GetInt32(identityIncrementOrd));
+                            column.Identity = identity;
+                        }
 
                         columns.Add(column);
                     }
@@ -117,6 +132,8 @@ namespace SQLRoller
                 }
                 private set { _length = value; }
             }
+
+            public Identity Identity { get; set; }
         }
 
         private void GetSchemaInformation()
