@@ -40,6 +40,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CreateTable.cs" />
+    <Compile Include="Database.cs" />
+    <Compile Include="DatabaseSpec.cs" />
     <Compile Include="IScopeResolver.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ScopeResolver.cs" />
