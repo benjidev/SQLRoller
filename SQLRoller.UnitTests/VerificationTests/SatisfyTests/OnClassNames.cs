@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using SQLRoller.Specify;
 
 namespace SQLRoller.UnitTests.VerificationTests.SatisfyTests
 {

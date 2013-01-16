@@ -1,6 +1,7 @@
 using System.Data;
 using NUnit.Framework;
 using SQLRoller.Attributes;
+using SQLRoller.Specify;
 
 namespace SQLRoller.UnitTests.VerificationTests.SatisfyTests
 {

@@ -40,7 +40,7 @@ namespace SQLRoller.Specify
                     }
                     if (idendityInt != null)
                     {
-                        column.Identity = new Identity<int>(idendityInt.Seed, idendityInt.Increment);
+                        column.Identity = new IdentityInt(idendityInt.Seed, idendityInt.Increment);
                     }
                 }
                 table.Columns.Add(column);

@@ -1,21 +1,24 @@
 ﻿namespace SQLRoller.Specify
 {
-    public class Identity
-    {}
-
-    public class Identity<T> : Identity where T : struct 
+    public abstract class Identity
     {
-        public T Seed { get; private set; }
-        public T Increment { get; private set; }
+        public abstract bool Equals(Identity otherIdentity);
+    }
 
-        public Identity(T seed, T increment)
+    public class IdentityInt : Identity
+    {
+        public int Seed { get; private set; }
+        public int Increment { get; private set; }
+
+        public IdentityInt(int seed, int increment)
         {
             Seed = seed;
             Increment = increment;
         }
-        public bool Equals(Identity<T> otherIdentity)
+        public override bool Equals(Identity otherIdentity)
         {
-            if (Seed == otherIdentity.Seed && Increment == otherIdentity.Increment)
+            var otherIdInt = otherIdentity as IdentityInt;
+            if (otherIdInt != null && Seed == otherIdInt.Seed && Increment == otherIdInt.Increment)
             {
                 return true;
             }

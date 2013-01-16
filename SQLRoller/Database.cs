@@ -69,7 +69,7 @@ namespace SQLRoller
                                             FROM Sys.columns c
                                             Inner Join Sys.Types t on c.user_Type_id = t.user_type_id
                                             Left Join [sys].[identity_columns] ic ON ic.object_id = c.object_id and ic.column_id = c.column_id 
-                                            where object_id = @objectId", conn);
+                                            where c.object_id = @objectId", conn);
                 cmd.Parameters.Add("@objectId", SqlDbType.Int).Value = objId;
 
                 conn.Open();
@@ -93,7 +93,7 @@ namespace SQLRoller
                         //Only Int Identities supported at the moment
                         if (reader.GetBoolean(identityOrd) && column.Type.Equals("int", StringComparison.OrdinalIgnoreCase))
                         {
-                            var identity = new Identity<int>(reader.GetInt32(identitySeedOrd),
+                            var identity = new IdentityInt(reader.GetInt32(identitySeedOrd),
                                                              reader.GetInt32(identityIncrementOrd));
                             column.Identity = identity;
                         }

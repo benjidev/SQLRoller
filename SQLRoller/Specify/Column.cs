@@ -29,7 +29,10 @@ namespace SQLRoller.Specify
             {
                 return false;
             }
-            if(Identity != null && Identity.Equals())
+            if (Identity != null && !Identity.Equals(existingType.Identity))
+            {
+                return false;
+            }
             return true;
         }
 
