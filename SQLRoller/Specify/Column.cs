@@ -15,9 +15,9 @@ namespace SQLRoller.Specify
         public bool? AllowNulls { get; set; }
         public Identity Identity { get; set; }
 
-        public bool IsSatisfiedBy(Database.SchemaColumn existingType)
+        public bool IsSatisfiedBy(Column existingType)
         {
-            if (Type.HasValue && !existingType.Type.Equals(Type.ToString(), StringComparison.OrdinalIgnoreCase))
+            if (Type.HasValue && existingType.Type != Type)
             {
                 return false;
             }

@@ -1,3 +1,4 @@
+using System;
 using System.Data;
 using NUnit.Framework;
 using SQLRoller.Attributes;
@@ -5,6 +6,45 @@ using SQLRoller.Specify;
 
 namespace SQLRoller.UnitTests.VerificationTests.SatisfyTests
 {
+    [TestFixture]
+    public class OnPrimaryKey  : DataBaseTestBase
+    {
+        [Test]
+        public void FailIfWrongFieldLabeled()
+        {
+            var dataspec = new DatabaseSpec();
+            dataspec.AddSchema<Categories>();
+            var database = new Database(ConnectionString);
+            Assert.That(database.Satisfies(dataspec), Is.False);
+        }
+
+        [Test]
+        public void SucceedIfEverythingMatches()
+        {
+            var dataspec = new DatabaseSpec();
+            dataspec.AddSchema<Suppliers>();
+            var database = new Database(ConnectionString);
+            Assert.That(database.Satisfies(dataspec), Is.True);
+        }
+
+        //Wrong field Labeled
+        private class Categories
+        {
+            [DataType(SqlDbType.NVarChar)]
+            [PrimaryKey()]
+            public string CategoryName { get; set; }
+        }
+
+        //Right Everything
+        private class Suppliers
+        {
+            [DataType(SqlDbType.Int)]
+            [PrimaryKey()]
+            public int SupplierID { get; set; }
+        }
+    }
+
+
     [TestFixture]
     public class OnIdendityInt : DataBaseTestBase
     {
@@ -47,7 +87,7 @@ namespace SQLRoller.UnitTests.VerificationTests.SatisfyTests
         //Wrong field Labeled
         private class Categories
         {
-            [DataType(SqlDbType.Int)]
+            [DataType(SqlDbType.NVarChar)]
             [IdentityInt(1,1)]
             public string CategoryName { get; set; }
         }

@@ -15,4 +15,9 @@ namespace SQLRoller.Attributes
         public int Seed { get; private set; }
         public int Increment { get; private set; }
     }
+
+    [AttributeUsage(AttributeTargets.Property, AllowMultiple = false, Inherited = false)]
+    public class PrimaryKeyAttribute : Attribute
+    {
+    }
 }

@@ -27,6 +27,8 @@ namespace SQLRoller.Specify
                 var dataLength = propertyInfo.GetCustomAttributes<DataLengthAttribute>(false).FirstOrDefault();
                 var allowNulls = propertyInfo.GetCustomAttributes<AllowNullsAttribute>(false).FirstOrDefault();
                 var idendityInt = propertyInfo.GetCustomAttributes<IdentityIntAttribute>(false).FirstOrDefault();
+                //this will work for singleKey only (I see a refactoring coming)
+                var primaryKey = propertyInfo.GetCustomAttributes<PrimaryKeyAttribute>(false).FirstOrDefault();
                 if (dataType != null)
                 {
                     column.Type = dataType.Value;
@@ -41,6 +43,10 @@ namespace SQLRoller.Specify
                     if (idendityInt != null)
                     {
                         column.Identity = new IdentityInt(idendityInt.Seed, idendityInt.Increment);
+                    }
+                    if (primaryKey != null)
+                    {
+                        table.PrimaryKey = column;
                     }
                 }
                 table.Columns.Add(column);

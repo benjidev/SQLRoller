@@ -10,9 +10,10 @@ namespace SQLRoller
     public class Database
     {
         private readonly string _connectionString;
-        private Dictionary<string, int> _tables;
+        private Dictionary<string, Table> _otherTables;
+        //private Dictionary<string, int> _tables;
 
-        public Database(string connectionString)
+        public  Database(string connectionString)
         {
             _connectionString = connectionString;
         }
@@ -25,21 +26,22 @@ namespace SQLRoller
 
         private bool VerifySchema(DatabaseSpec dataspec)
         {
-            foreach (Table table in dataspec.Tables)
+            foreach (Table specifiedTable in dataspec.Tables)
             {
-                if (!_tables.ContainsKey(table.Name)) return false;
-                if (!VerifyColumns(table)) return false;
+                //var existingTable = _otherTables.SingleOrDefault(x=> x.Key == specifiedTable.Name);
+                if (!_otherTables.ContainsKey(specifiedTable.Name)) return false;
+                if (!VerifyColumns(specifiedTable, _otherTables[specifiedTable.Name])) return false;
             }
             return true;
         }
 
-        private bool VerifyColumns(Table table)
+        private bool VerifyColumns(Table specifiedTable, Table existingTable)
         {
-            var objId = _tables[table.Name];
-            var existingColumns = GetColums(objId);
-            foreach (Column specedColumn in table.Columns)
+            //var objId = _tables[table.Name];
+            //var existingColumns = GetColums(objId);
+            foreach (Column specedColumn in specifiedTable.Columns)
             {
-                SchemaColumn existingColumn = FindExistingColumn(specedColumn.Name, existingColumns);
+                Column existingColumn = FindExistingColumn(specedColumn.Name, existingTable.Columns);
                 if (existingColumn == null)
                 {
                     return false;
@@ -53,12 +55,80 @@ namespace SQLRoller
             return true;
         }
 
-        private SchemaColumn FindExistingColumn(string name, IEnumerable<SchemaColumn> existingColumns)
+        private Column FindExistingColumn(string name, IEnumerable<Column> existingColumns)
         {
             return existingColumns.FirstOrDefault(existingColumn => existingColumn.Name == name);
         }
 
+        private IList<Column> GetColumns(int objId)
+        {
+            /* To get primary keys/index
+             * 
+select unique_index_id from sys.key_constraints where parent_object_id = 741577680 and type = 'PK'
+select * from sys.indexes  where object_id = 741577680 and index_id = 1
+--741577680
+SELECT * FROM sys.index_columns where object_id = 741577680 and index_id = 1
 
+SELECT * FROM sys.columns where object_id = 741577680 and column_id in (1,2)
+             * */
+
+            var columns = new List<Column>();
+            using (var conn = new SqlConnection(_connectionString))
+            {
+                var cmd = new SqlCommand(@"SELECT c.Name, t.Name [type], c.max_length, c.is_nullable, c.is_identity, ic.Seed_Value, ic.increment_value 
+                                            FROM Sys.columns c
+                                            Inner Join Sys.Types t on c.user_Type_id = t.user_type_id
+                                            Left Join [sys].[identity_columns] ic ON ic.object_id = c.object_id and ic.column_id = c.column_id 
+                                            where c.object_id = @objectId", conn);
+                cmd.Parameters.Add("@objectId", SqlDbType.Int).Value = objId;
+
+                conn.Open();
+                var reader = cmd.ExecuteReader();
+                if (reader.HasRows)
+                {
+                    var nameOrd = reader.GetOrdinal("Name");
+                    var typeOrd = reader.GetOrdinal("type");
+                    var lengthOrd = reader.GetOrdinal("max_length");
+                    var allowNullsOrd = reader.GetOrdinal("is_nullable");
+                    var identityOrd = reader.GetOrdinal("is_identity");
+                    var identitySeedOrd = reader.GetOrdinal("Seed_Value");
+                    var identityIncrementOrd = reader.GetOrdinal("increment_value");
+                    while (reader.Read())
+                    {
+                        var column = new Column(reader.GetString(nameOrd));
+                        SqlDbType type;
+                        var typeStr = reader.GetString(typeOrd);
+
+                        const bool ignoreCase = true;
+                        if (Enum.TryParse(typeStr, ignoreCase, out type))
+                        {
+                            column.Type = type;
+                        }
+                        if (typeStr[0] == 'n')// unicode
+                        {
+                            column.Length = reader.GetInt16(lengthOrd)/2;
+                        }
+                        else
+                        {
+                            column.Length = reader.GetInt16(lengthOrd);
+                        }
+                         column.AllowNulls = reader.GetBoolean(allowNullsOrd);
+
+                        //Only Int Identities supported at the moment
+                        if (reader.GetBoolean(identityOrd) && column.Type == SqlDbType.Int)
+                        {
+                            var identity = new IdentityInt(reader.GetInt32(identitySeedOrd),
+                                                             reader.GetInt32(identityIncrementOrd));
+                            column.Identity = identity;
+                        }
+
+                        columns.Add(column);
+                    }
+                }
+            }
+            return columns;
+        }
+        /*
         private IList<SchemaColumn> GetColums(int objId)
         {
             //SELECT Name FROM Sys.columns where object_id = 309576141
@@ -104,7 +174,8 @@ namespace SQLRoller
             }
             return columns;
         }
-
+        */
+        /*
         public class SchemaColumn
         {
             private int _length;
@@ -135,10 +206,12 @@ namespace SQLRoller
 
             public Identity Identity { get; set; }
         }
-
+        */
         private void GetSchemaInformation()
         {
-            _tables = new Dictionary<string, int>();
+            //_tables = new Dictionary<string, int>();
+            _otherTables = new Dictionary<string, Table>();
+            var tables = new Dictionary<int, Table>();
             using (var conn = new SqlConnection(_connectionString))
             {
                 var cmd = new SqlCommand("select Name, object_id from sys.tables", conn);
@@ -150,9 +223,17 @@ namespace SQLRoller
                     var objectIdOrd = reader.GetOrdinal("object_id");
                     while (reader.Read())
                     {
-                        _tables.Add(reader.GetString(nameOrd), reader.GetInt32(objectIdOrd));
+                        var tableName = reader.GetString(nameOrd);
+                        var objId = reader.GetInt32(objectIdOrd);
+                        //_tables.Add(tableName, objId);
+                        tables.Add(objId, new Table(tableName));
                     }
                 }
+            }
+            foreach (var table in tables)
+            {
+                table.Value.Columns = GetColumns(table.Key);
+                _otherTables.Add(table.Value.Name, table.Value);
             }
         }
     }
